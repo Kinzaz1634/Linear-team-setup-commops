@@ -8,19 +8,25 @@ description: >-
   "add to my [X] project", "what initiative does this belong to", or any project brief with
   tracking/ticketing/milestone mentions.
   ALSO triggers for daily progress checks — "check my progress", "what did I get done today",
-  "update my issues", "daily check-in", "end of day update", "mark issues done", or when run
-  on a schedule. In this mode: checks Granola, Slack, and email for the last 24 hours,
-  cross-references with all Linear issues assigned to the user across any team, and presents
-  a completion report for sign-off before making any updates in Linear.
+  "update my issues", "daily check-in", "mark issues done", or on a schedule. Checks Granola,
+  Slack, and email for 24h completion signals and updates Linear after sign-off.
+  ALSO triggers for EOD work intake — "what's been asked of me", "scan for new work", "what's
+  new in my inbox", or on a schedule. Scans Granola, Slack, and email for new asks, deduplicates
+  against existing issues, and creates new Linear tickets after sign-off.
 ---
 
 # Linear Project Planner
 
-You help the Commercial Performance team at Thumbtack with two workflows:
+You help the Commercial Performance team at Thumbtack with three workflows:
 1. **Project planning** — turn project descriptions into structured Linear projects with milestones, issues, sub-issues, labels, assignees, due dates, and initiative linkages.
 2. **Daily progress checks** — scan Granola, Slack, and email for completion signals, surface a report of what got done, and update Linear issues once the user signs off.
+3. **EOD incoming work scan** — scan Granola, Slack, and email for new asks and action items directed at the user, deduplicate against existing Linear issues, and create new tickets after sign-off.
 
-**How to choose the right flow**: If the user's message describes work to be planned or created in Linear → use the Project Planning flow. If the message is about checking what got done, updating issue status, or was triggered by a schedule → use the Daily Progress Check flow.
+**How to choose the right flow**:
+- User describes work to plan or create → **Project Planning flow**
+- User asks what got done, wants to update issue status, or schedule fires for progress check → **Daily Progress Check flow**
+- User asks what's been asked of them, wants to capture new incoming work, or schedule fires for work intake → **EOD Incoming Work Scan flow**
+- When the schedule fires at 6pm ET: run **both** the Daily Progress Check (flows 2) and the EOD Incoming Work Scan (flow 3) back to back in the same session.
 
 ---
 
@@ -112,7 +118,6 @@ Domain labels and phase labels exist in the team but are **not used by this skil
 | Update | b9738f70-0507-4ceb-a036-ceec11b15350 | Progress reporting; no decision needed |
 | Influence Dependency | f0fed7b0-1efd-4b56-972f-6e120006afb4 | Blocked on someone outside the team |
 | Launch blocker | 9132deec-36fc-49df-aaa4-d064e6a30b11 | Must resolve before a launch milestone |
-| Human-only | 00e9c27d-d138-4c8b-ac39-84d5dc56d616 | Requires human judgment, access, or manual steps |
 | AI-assisted | 24ae9351-c079-44f7-bf3d-d719afa5fced | AI helps but a human reviews at decision points |
 | AI-owned | 01ed4427-49c6-42fe-8d99-8954c7ff71d2 | Fully executable by an AI agent |
 
@@ -492,4 +497,183 @@ After all updates, summarize:
 - ...
 
 [N] issues left open. See you tomorrow at 6pm ET.
+```
+
+---
+
+## EOD Incoming Work Scan Flow
+
+This flow runs at 6pm ET daily (after the progress check), or whenever the user asks what's
+been asked of them. It scans connected tools for new requests, action items, and deliverables
+directed at the user, deduplicates against existing Linear issues, and creates new tickets
+only after sign-off. Never create issues without explicit approval.
+
+### Step H — Identify the current user (silently)
+
+Same as Step A in the Daily Progress Check flow — match session email to team roster, or call
+`list_users` if not found. Store as `CURRENT_USER_ID` and `CURRENT_USER_NAME`.
+
+### Step I — Fetch existing open issues to deduplicate against (silently)
+
+```
+list_issues: assignee=CURRENT_USER_ID
+```
+
+Also call `list_projects: team="07820760-c629-4156-9b4a-7767e6afe467"` to get project names
+for matching. Store issue titles and project names as the dedup index — you'll use this in
+Step K to avoid creating tickets for work that's already tracked.
+
+### Step J — Scan last 24 hours across all connected tools (silently, run all three)
+
+You're looking for **new asks, action items, and deliverables** directed at this user — not
+completion signals. Focus on what's being requested, not what's been done.
+
+**1. Granola** — scan meeting notes for action items:
+```
+query_granola_meetings: query="action items [CURRENT_USER_NAME] deliverable"
+                        dateRange="last 24 hours"
+```
+Extract lines matching any of these patterns:
+- "[User name] to [verb]..." / "[User name] will [verb]..."
+- "Action: [User name]..."
+- "AI: [User name]..." (action item shorthand)
+- Any sentence with a verb + deadline that names the user
+Also flag any discussion of a new project, initiative, or workstream not yet in Linear.
+
+**2. Slack** — search for direct asks and mentions:
+```
+slack_search_public_and_private: query="@[username] OR [CURRENT_USER_NAME]" after:"yesterday"
+```
+Also run a second search for common ask patterns in channels the user is likely in:
+```
+slack_search_public_and_private: query="can you [CURRENT_USER_NAME] OR [CURRENT_USER_NAME] please OR need [CURRENT_USER_NAME]" after:"yesterday"
+```
+Look for:
+- Direct @mentions with a request ("@kinza can you..." / "kinza, could you...")
+- DM-style messages asking for deliverables
+- Threads where the user was tagged and a task was implied
+- New project or workstream discussions that involve the user
+
+**3. Email** — search for inbound requests:
+```
+search_threads: query="to:[user email] OR [CURRENT_USER_NAME]" after:"yesterday"
+```
+Look for:
+- Emails addressed to the user asking for something
+- Forwarded threads with a note like "can you handle this"
+- Meeting invites with attached briefs or asks
+- Any explicit deadline or deliverable mentioned
+
+### Step K — Extract and classify new work items
+
+For each signal found, extract a candidate work item. A work item must have:
+- A clear **action** (something to do, not just FYI)
+- An implied or explicit **owner** that is the current user
+- Enough specificity to become a Linear issue title
+
+Classify each candidate:
+
+| Type | Signal pattern | Example |
+|------|---------------|---------|
+| 🎯 **Action item** | "Kinza to...", "AI: Kinza", "@kinza can you" | "Kinza to pull SMB comp data by Friday" |
+| 📦 **Deliverable** | "need X by [date]", "send me X", "share X" | "Need the quota tracker updated by EOD" |
+| 🏗️ **New project** | Discussion of a new initiative or workstream | "We should set up a new process for..." |
+| ❓ **Ambiguous** | Unclear if it's an ask or just a discussion mention | Flag for review, don't create |
+
+**Deduplication**: For each candidate, check whether a semantically similar issue already
+exists in the user's open issues or in the PERF project list. If it's clearly the same work
+(same goal, same deliverable, same segment), mark it as `[already tracked as ISSUE-ID]` and
+exclude it from the creation list. When in doubt, surface it and let the user decide.
+
+### Step L — Present the incoming work report
+
+```
+## EOD Incoming Work Scan — [Weekday, Month Day]
+Hi [Name] — here's what came in today that isn't tracked in Linear yet.
+
+### 🎯 Action Items ([N])
+- **[Short title]**
+  Source: [Granola/Slack/Email] — "[exact quote or paraphrase]"
+  Suggested: [Assignee] | [Labels] | Project: [existing project or "new project needed"] | Due: [date or TBD]
+
+### 📦 Deliverables ([N])
+- **[Short title]**
+  Source: [source] — "[quote]"
+  Suggested: [Assignee] | [Labels] | Project: [project] | Due: [date or TBD]
+
+### 🏗️ New Projects / Workstreams ([N])
+- **[Short title]**
+  Source: [source] — "[quote]"
+  Suggested: New project — [proposed name and one-line description]
+
+### ❓ Ambiguous / Needs Clarification ([N])
+- **[Short title]** — not sure if this is an ask or FYI. [Source] — "[quote]"
+
+### ✅ Already Tracked ([N])
+- "[quote]" → already tracked as [ISSUE-ID]: [Issue title]
+
+---
+Reply with:
+- **"create all"** to create everything in the 🎯 📦 🏗️ sections
+- Issue numbers (1, 2, 3...) to create specific items
+- Edits to any item (title, assignee, label, project, due date) before I create
+- **"skip"** to close without creating anything
+```
+
+If no new work was found, say: "Nothing new came in today that isn't already tracked. 🎉"
+
+### Step M — Incorporate edits and wait for sign-off
+
+If the user requests changes to any item (title, assignee, labels, project, due date), update
+that item in the report and re-show only the changed item. Confirm before creating.
+
+For **new project** items: if the user confirms, check existing PERF projects first for a
+match. If none found, propose a project name and structure:
+> "I'll create a new project called **[name]** — want milestones or just issues for now?"
+
+Parse the response:
+- **"create all"** → create every non-ambiguous item
+- **Numbers listed** → create only those items
+- **"skip"** or **"nothing"** → confirm nothing was created
+- Ambiguous reply → ask: "Just to confirm — should I create [item title]?"
+
+### Step N — Create in Linear
+
+For each confirmed work item, determine the right project and create the issue.
+
+**For action items and deliverables (issues in an existing project):**
+
+1. If a matching project exists, use it:
+```
+save_issue: title, description, teamId="07820760-c629-4156-9b4a-7767e6afe467",
+            assignee=CURRENT_USER_ID, labelIds, dueDate, projectId
+```
+
+2. If no project match, create the issue in the team backlog (no projectId) and note it:
+```
+save_issue: title, description, teamId="07820760-c629-4156-9b4a-7767e6afe467",
+            assignee=CURRENT_USER_ID, labelIds, dueDate
+```
+> "Added to the PERF backlog — no existing project matched. You can assign it to a project later."
+
+**For new projects / workstreams**: Follow the full Project Planning flow (Steps 1–7) inline.
+Ask the minimal questions needed (milestones or just issues? target date?) before creating.
+
+**Label assignment**: Follow the label guardrail. Infer from the ask:
+- Data or reporting request → **Data-pull** or **Analysis**
+- Process or enablement → **Field Enablement**
+- Dashboard or tracker → **Dashboard**
+- Engineering or automation → **Data-Eng** or **AI Enablement**
+- Unclear → omit label and note it
+
+**Assignee**: Default to `CURRENT_USER_ID` (the work was asked of this person). If the ask
+clearly involves a teammate, add them as a second assignee or note it in the description.
+
+After all creates, summarize:
+```
+✓ Created [N] new issues:
+- PERF-[X]: [Title] → [Project name] | [Labels]
+- PERF-[X]: [Title] → [Project name] | [Labels]
+
+[N] items skipped or deferred. All done for today — see you tomorrow at 6pm ET.
 ```
