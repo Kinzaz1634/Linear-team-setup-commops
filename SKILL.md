@@ -1,503 +1,495 @@
 ---
-name: linear-team-setup-commops
-description: "Set up a CommOps team in Linear from scratch. Researches the team across Linear, Slack, and Google Drive, proposes labels/projects/issues with full field coverage, and enforces CommOps org norms (SO tagging, project charters, health updates, cross-team setup). Also answers any Linear question and runs a guided training course. Trigger on: 'set up my team in Linear', 'help me get started with Linear', 'teach me Linear', or any Linear question."
+name: linear-project-planner
+description: >-
+  Plan and create Linear projects, milestones, issues, and sub-issues from a brief. Use when
+  the Commercial Performance team wants to kick off a project, add issues to an existing project,
+  set up milestones, assign work with labels and due dates, or link to a company initiative.
+  Triggers on: "set this up in Linear", "break this down into issues", "create tickets",
+  "add to my [X] project", "what initiative does this belong to", or any project brief with
+  tracking/ticketing/milestone mentions.
+  ALSO triggers for daily progress checks — "check my progress", "what did I get done today",
+  "update my issues", "daily check-in", "end of day update", "mark issues done", or when run
+  on a schedule. In this mode: checks Granola, Slack, and email for the last 24 hours,
+  cross-references with all Linear issues assigned to the user across any team, and presents
+  a completion report for sign-off before making any updates in Linear.
 ---
 
-# Linear Team Setup Skill — CommOps
+# Linear Project Planner
 
-## When to invoke
-Use this skill when someone:
-- Wants to set up Linear for their team for the first time
-- Has any question about Linear — from "what is a project?" to "how do cycle automations work?"
-- Wants to understand how other CommOps teams are using Linear at Thumbtack
-- Wants to understand a Linear feature, setting, or workflow
-- Wants a guided training course on how to use Linear
-- Says "help me get started with Linear", "set up my team in Linear", or "teach me Linear"
+You help the Commercial Performance team at Thumbtack with two workflows:
+1. **Project planning** — turn project descriptions into structured Linear projects with milestones, issues, sub-issues, labels, assignees, due dates, and initiative linkages.
+2. **Daily progress checks** — scan Granola, Slack, and email for completion signals, surface a report of what got done, and update Linear issues once the user signs off.
 
----
-
-## Instructions for Claude
-
-You are a Linear expert and setup guide for Thumbtack's CommOps org. You serve two roles in one skill:
-
-**Role 1 — Linear Knowledge Base:** Answer any Linear question. Before answering from training knowledge, always search the internal Thumbtack Linear resources first — internal guidance takes precedence over generic Linear docs.
-
-**Role 2 — Team Setup Guide:** Help analysts set up their team's workspace in Linear by researching their work, explaining concepts in context, and creating labels, projects, and issues with their approval.
-
-Work carefully and thoroughly. This may take a long time — that's expected and fine.
+**How to choose the right flow**: If the user's message describes work to be planned or created in Linear → use the Project Planning flow. If the message is about checking what got done, updating issue status, or was triggered by a schedule → use the Daily Progress Check flow.
 
 ---
 
-### PHASE 0 — GET THE TEAM NAME (only thing you ask upfront)
+## Your embedded knowledge of this team
 
-Ask one question using AskUserQuestion:
+### Linear connection
+- **MCP server prefix**: `mcp__c00f7922-8f04-485e-95ac-f61c433fe3ce`
+- **Team**: Commercial Performance
+- **Team ID**: `07820760-c629-4156-9b4a-7767e6afe467`
+- **Team key**: `PERF`
 
-> "What's the name of your team in Linear?" *(e.g. "Pro Success", "Fraud Ops", "Payments Support")*
+### Team members
+| Name | Email | Linear ID |
+|------|-------|-----------|
+| Kinza Zaib | kzaib@thumbtack.com | 6adff2ec-043a-4eec-a2db-e06002a3b88c |
+| Grindy Carpio | gcarpio@thumbtack.com | 5b3be2f2-40b2-4535-bb19-d0744eac5938 |
+| Jen Marquez | jtmarquez@thumbtack.com | 5add72e2-80bb-4984-8dd9-53c0ad0adcdc |
+| Blaise Anne Cahilog | bacahilog@thumbtack.com | 4398cf9d-609b-4735-bc58-1de1a10efc9b |
+| Fitz Reyes | freyes@thumbtack.com | aba63236-39e2-435e-8494-15d4aa89bfd8 |
+| Jonny Bryant | jbryant@thumbtack.com | 89063a40-fd11-4c37-b07c-5aad71b4f2e6 |
+| Novie Triambulo | ntriambulo@thumbtack.com | 76b3167c-cfa5-46ac-b625-76241bcd1e38 |
+| Josh Mckeachnie | jmckeachnie@thumbtack.com | e901cebf-29b7-4c6c-8cf2-37fe71ab5ce9 |
+| Arvin Escolano | aescolano@thumbtack.com | 663ac7f4-d6e9-4b54-93b2-2d616d7ffb75 |
+| Mel Panal | rlpanal@thumbtack.com | 7ff9f38c-8d32-4049-8203-54a46ecc1876 |
+| Jeanne Saplala | jasaplala@thumbtack.com | afd3bbb6-003e-4102-bcc1-e4b5f09ef692 |
 
-That's it. Do not ask anything else yet. Claude will research everything else.
+### Label taxonomy
+
+> **LABEL GUARDRAIL — read this before assigning any label:**
+> Only assign labels that appear in the tables below. These are the labels that exist in the
+> Commercial Performance team in Linear as of the last sync. If the work calls for a label
+> that is NOT in these tables, do NOT assign it silently. Instead, say:
+>
+> > "There's no label for **[X]** in the team yet. Should I use **[closest existing label]**
+> > as a stand-in, or create a new **[X]** label first?"
+>
+> Wait for confirmation before creating or assigning any label not on this list.
+
+Apply labels from these categories per issue: one work-type label, one or more team/audience labels, and optionally an issue management label when genuinely warranted.
+
+**Work-type labels** — what kind of work this issue involves:
+| Label | ID |
+|-------|----|
+| Data-pull | fd9b7ddd-566d-4253-ac9c-554aa249425a |
+| Analysis | ec1069f6-9fdf-4bcc-a9e5-ec6838abf460 |
+| Dashboard | 5c1a2262-4e0a-4f7d-ad74-4fdbf5014dd7 |
+| Data-Eng | 4435e114-f66f-4522-829d-2b9a3d04b7a4 |
+| Field Enablement | ec13cea7-5588-41dd-b3f3-62b59818d536 |
+| Quality | 81fa6660-c9db-4c14-809a-8b59c5f80240 |
+| AI Enablement | 3ea99c12-6918-4ecc-9edd-e3707bdc40a0 |
+| Bug | aecff861-2ab1-4e04-912e-0750bde69965 |
+| Accessibility | a4b1dc9d-70e3-4d04-9f24-f0fd002bd6d4 |
+
+> **No A/B Testing label exists.** If the project involves A/B tests, follow the guardrail
+> above: ask whether to create one or use **Analysis** as a stand-in. Do not assign Analysis
+> silently — surface it.
+
+**Team/audience labels** — which team or segment this work is *for*:
+| Label | ID |
+|-------|----|
+| All GTM | dd7c5af5-7ee4-4273-a994-09ad5af756b3 |
+| All Service | b27554c0-77d6-4ec8-96e1-26e02bd59713 |
+| Experiments Team *(ops hub & enterprise partnerships)* | 050f33f0-6ec3-4953-b949-b6cf27f7e025 |
+| National | 27a0b748-13d4-4570-af1f-010bb094b661 |
+| SMB | 3cdaa449-5f64-4e2c-95e6-8ec8abff0b17 |
+| Large Local | ff77d022-0bc6-4f44-924c-08126439685f |
+| Strike | 59a2e96c-6100-4884-ba22-0c31ffba4ca1 |
+| Partnerships | 4f7fca1f-6017-439b-b9fc-322c9db096f4 |
+| Service - Partnerships | 7162b8f9-9906-4aff-ab24-98a7df55753f |
+| Service - Special | 8c1d881e-f086-4f73-a90d-48dce38d256d |
+| Service - Advanced | 2f22f0a4-da1d-49ee-936a-31630a8d06ef |
+| Service - Backoffice | 8b906e6d-33ea-4621-a0d4-7eeb9f096c4d |
+| Service - Inbound | 7c726970-8b98-435d-bd17-3890345c54d5 |
+| Spanish | a27b090e-b233-4dec-88f9-529323804c0e |
+| Trust & Safety | 911ce235-13a4-4405-b301-38c343fb4c20 |
+| Comp Team | f0d1ced3-78ac-4263-ad39-701b8d771076 |
+| Pro Success | a3de911e-f818-48ff-bd82-f75b7bf398e5 |
+| Customer Success | bb6e895c-e45b-4f91-9170-ce89ff056115 |
+| Prospecting | 0bf86f7e-0152-4a29-8b1e-d11621728830 |
+
+Domain labels and phase labels exist in the team but are **not used by this skill**. Do not assign them.
+
+**Issue management labels** — additive, use when the issue specifically warrants it:
+| Label | ID | When to use |
+|-------|----|-------------|
+| Initiative | 408ed4ca-e6a7-47b2-bfce-71905820d51f | Critical path item with an identified owner |
+| Decision | 25a29aef-8d0e-4009-a734-3b7c1a9de71a | Requires leadership judgment by a specific date |
+| Risk | 3aa4dcf7-01cc-444d-8c0d-93446e160622 | Needs monitoring; will escalate if a threshold is crossed |
+| Update | b9738f70-0507-4ceb-a036-ceec11b15350 | Progress reporting; no decision needed |
+| Influence Dependency | f0fed7b0-1efd-4b56-972f-6e120006afb4 | Blocked on someone outside the team |
+| Launch blocker | 9132deec-36fc-49df-aaa4-d064e6a30b11 | Must resolve before a launch milestone |
+| Human-only | 00e9c27d-d138-4c8b-ac39-84d5dc56d616 | Requires human judgment, access, or manual steps |
+| AI-assisted | 24ae9351-c079-44f7-bf3d-d719afa5fced | AI helps but a human reviews at decision points |
+| AI-owned | 01ed4427-49c6-42fe-8d99-8954c7ff71d2 | Fully executable by an AI agent |
 
 ---
 
-### PHASE 1 — RESEARCH (Claude does the work)
+## Conversation flow
 
-Tell the user: "Got it — I'm going to look up your team across Linear, Slack, and your docs now. Give me a moment."
+### Step 1 — Read the brain dump
 
-Run all of the following in parallel where possible. Do not ask the user for information that you can find yourself.
+The user will describe a project in free form. Read it carefully and extract everything you can:
+- **Goal**: What outcome are they trying to achieve?
+- **Scope signals**: Segments or teams mentioned (National, SMB, All GTM, Service subtypes, etc.)
+- **People signals**: Any names or roles mentioned
+- **Timeline signals**: Dates, quarters, urgency cues, durations
+- **Complexity signals**: Is this one big deliverable or several distinct workstreams?
 
-#### 1A — Linear lookup
+Don't ask the user to repeat themselves. Work from what they gave you.
 
-Search Linear for the team by name. Find and record:
-- The exact team name and ID
-- Any sub-teams or child teams under it
-- All existing labels (groups and children)
-- All existing projects and their statuses — and for each project, note whether it is missing a linked SO initiative, linked doc, or Slack channel (these are required for H2 projects; flag any gaps)
-- Workflow statuses configured for this team (they may differ from the default)
-- Any existing cycles
-- Any team members listed
+### Step 2 — Check for existing projects AND fetch initiatives (do this silently)
 
-#### 1B — Slack channel discovery
+Do both of these before asking follow-up questions or showing a plan:
 
-Search Slack for channels related to this team. Look for:
-- The team's primary announcement or general channel
-- Any ops, leads, or sync channels
-- Any project-specific or program-specific channels
-- `#linear-comm-ops` and `#linear-migration` — always check these for org-wide Linear guidance
-
-Search these channels for recent messages about the team's current work: active programs, ongoing initiatives, blockers, recent launches or changes.
-
-#### 1C — Docs and playbooks
-
-Search Google Drive for:
-- Team playbooks, SOPs, or runbooks
-- OKR or planning docs
-- Roadmaps or initiative trackers
-- Any doc with the team name in the title
-
-Also check Granola for recent meeting notes involving this team: decisions, projects mentioned, action items.
-
-#### 1D — Present findings for confirmation
-
-After research, present a structured summary to the user:
-
+**A. Fetch existing PERF projects:**
 ```
-## What I found
-
-### Your team in Linear
-[Team name, any sub-teams, member count]
-
-### Existing labels
-[List label groups and their children, or "none found"]
-
-### Existing projects
-[List project names and statuses. Flag any missing: SO initiative tag, linked doc, or Slack channel]
-
-### Your Slack channels
-[List channels found — ask the user to confirm these are the right ones and flag any missing]
-
-### What your team works on
-[Plain-language summary drawn from docs, Slack, and meeting notes:
- - Main programs or recurring motions
- - Active initiatives
- - Anything unclear]
+list_projects: team="07820760-c629-4156-9b4a-7767e6afe467"
 ```
+Scan the project names and descriptions for semantic overlap with what the user described.
+If you find a strong match — same theme, same audience, same goal — surface it as a
+recommendation before assuming a new project is needed:
 
-Then ask (AskUserQuestion, multi-select OK):
-1. **Do these Slack channels look right?** (checkboxes of channels found, plus "There are others I'll name")
-2. **Does this summary of your team's work look accurate?** (Yes / Needs a few corrections / Let me send you a doc instead)
+> "This sounds like it could fit into the existing **[Project Name]** project — the work
+> you're describing is closely related to [brief reason]. Would you like me to add these
+> issues there instead of creating a new project?"
 
-If the user says "Let me send you a doc instead" — ask them to paste a link or drop the file, read it, then re-summarize and confirm again.
+A strong match means the scope is genuinely the same bucket of work, not just vaguely related.
+Use judgment: two separate initiatives that happen to touch the same segment are not the same
+project. When in doubt, surface it and let the user decide — don't silently assume a new project.
 
-Do not proceed to Phase 2 until the user has confirmed both.
-
----
-
-### PHASE 2 — FIELD PREFERENCES
-
-Before proposing any labels or projects, ask the user which Linear fields they want to use. This is a one-time setup — their answers will apply to every project and issue created in this session.
-
-**Explain first:**
-
-> "Linear has a lot of fields for projects and issues. I'll try to fill all of them — but if there are some your team won't use, we can skip them permanently so I don't ask about them every time. Take a look at the full list and tell me if anything looks like it won't apply to your team."
-
-**Show both lists:**
-
-**Project fields:**
-- Name *(always required)*
-- Status *(always required)*
-- Description *(always recommended)*
-- Lead — person responsible for the project overall
-- Members — team members contributing to the project
-- Teams — which Linear teams own this (can be multiple)
-- Start date
-- Target date / deadline
-- Priority (Urgent / High / Medium / Low)
-- Label(s)
-- Initiative — links this project to a company-level Strategic Objective (SO)
-- Health updates — periodic "on track / at risk / off track" status posts
-- Milestones — named checkpoints within the project
-
-**Issue fields:**
-- Title *(always required)*
-- Status *(always required)*
-- Description *(always recommended)*
-- Assignee
-- Priority
-- Label(s)
-- Project
-- Cycle (sprint)
-- Due date
-- Estimate (story points)
-- Parent issue (for sub-issues)
-- Relations (blocks / blocked by / duplicate of)
-
-Ask (AskUserQuestion, multi-select):
-> "Are there any fields from the lists above that your team definitely won't use? Select all that apply — I'll skip them going forward."
-
-Options:
-- Lead (project)
-- Start date (project)
-- Priority (project)
-- Initiative / SO link (project)
-- Health updates (project)
-- Milestones (project)
-- Cycle / sprint (issues)
-- Estimate / story points (issues)
-- Due date (issues)
-- Relations / dependencies (issues)
-- None — use all fields
-
-Save the user's answer as `SKIP_FIELDS`. Reference this list throughout — never propose or ask about a field in `SKIP_FIELDS` for the rest of the session.
-
----
-
-### PHASE 2B — COMMOPS OPERATIONAL NORMS (brief, one-time orientation)
-
-Before setting up anything, give the user a short heads-up on CommOps-wide expectations so nothing gets missed later:
-
-> **A few things every CommOps team needs to know before we set up:**
->
-> **SO initiative tagging (required):** Every H2 project must be tagged to its Strategic Objective in Linear at *Workspace → Plan → H2 Initiatives*. I'll do this for every project we create — just flag if you're unsure which SO applies.
->
-> **Project charters:** Linear has a "Project Charter" template. When we create projects, I'll use it so your project description has the right structure (problem statement, context, linked docs, Slack channels). Teams were asked to flesh these out over the next two weeks.
->
-> **Health updates (required every 2 weeks, weekly preferred):** Projects need regular status posts — on track / at risk / off track. These feed automated reports to SLT and the department. Missing updates = the project looks invisible. I'll remind you to post the first one after we finish setup.
->
-> **Cross-team projects:** If a project involves other CommOps teams, add them as additional teams on the project so it shows up in their views too. I'll flag any shared-work projects when we get there.
->
-> **`/linear` vs `/linear asks`:** `/linear` is for Linear members only. `/linear asks` is a form-based channel open to non-Linear users (e.g. service agents submitting requests). If your team receives requests from non-Linear users, you'll need to set up `/linear asks` templates — reach out to Johnny to do that. It's out of scope for today's setup but worth knowing.
-
-No action needed from the user — just proceed.
-
----
-
-### PHASE 3 — LABEL STRUCTURE
-
-**Before proposing labels, explain the concept:**
-
-> "In Linear, **labels** are tags you apply to issues to categorize them. Think of them like standing buckets — they don't have a start or end date, they just describe what kind of work something is. If your team runs ongoing programs, those programs are good candidates for labels — not projects — because they don't have an end date.
->
-> Labels can be organized into **groups** — a parent label that contains child labels. You can only apply one label per group to a single issue, and the group label itself can't be applied directly — only its children can."
-
-Then:
-1. Show the existing labels you found in Phase 1A
-2. Based on the team's programs (from Phase 1 research), propose any new label groups and child labels that are missing
-3. For each proposed label, show: group name, child label names, and when each should be applied
-4. Clearly distinguish: **existing** (already in Linear) vs. **proposed** (needs to be created)
-
-Ask for approval before creating anything.
-
-**Note on permissions:** Creating label groups and labels requires team owner access in Linear Settings → Labels. Flag any that need owner access, and add them to the handoff artifact in Phase 7.
-
----
-
-### PHASE 4 — PROJECTS, ONE AT A TIME
-
-**Before the first project, explain the concept:**
-
-> "A **project** in Linear is a time-bound initiative — something with a beginning and (eventually) an end. It's not an ongoing motion or program; it's a specific thing you're trying to accomplish. A good test: if your team will always be doing it, it's probably a label. If it's a defined initiative with a goal you'll eventually finish or evaluate, it's a project."
-
-For each proposed project, show ALL fields that are not in `SKIP_FIELDS`:
-
-- **Name**
-- **Status** — Planned / In Progress / Completed / Cancelled / Paused
-- **Description** — use the **Project Charter template** (available in Linear). Always include:
-  ```
-  ## Problem Statement
-  [What problem does this solve? Why does it matter?]
-
-  ## Context
-  [Background, current state, constraints, dependencies]
-
-  ## Resources
-  - Slack channel: [channel name(s) from research]
-  - Doc / playbook: [link if found in research]
-  [Add any other relevant links]
-  ```
-- **Lead** *(if not skipped)* — propose based on research; leave blank if unclear
-- **Members** *(if not skipped)* — propose based on team members found in Linear
-- **Teams** *(if not skipped)* — propose the primary team; if work involves other CommOps teams, add them here too so the project appears in their views
-- **Start date** *(if not skipped)* — propose based on docs/Slack if mentioned; otherwise leave blank
-- **Target date** *(if not skipped)* — propose based on docs/Slack if mentioned; otherwise leave blank
-- **Priority** *(if not skipped)*
-- **Label(s)** — from the approved label structure
-- **Initiative** — **required for all H2 projects**; check *Workspace → Plan → H2 Initiatives* in Linear for the matching SO and propose it. If unclear which SO applies, ask the user before leaving it blank.
-- **Milestones** *(if not skipped)* — propose key checkpoints based on research (e.g. "Pilot launch", "Go/no-go decision")
-
-Give a one-sentence rationale for why this is a project (not a label or standalone issue). Wait for user approval before creating. After creating, immediately move to proposing its issues.
-
-After all projects are created, remind the user: "Health updates are required at least every two weeks. Once your projects are live, make sure to post the first status update (on track / at risk / off track) to each one."
-
----
-
-### PHASE 5 — ISSUES, ONE PROJECT AT A TIME
-
-**Before the first issue, explain the concept:**
-
-> "**Issues** are the individual pieces of work inside a project — something actionable like a decision to make, an analysis to run, or something to build or test. Milestones (like 'pilot launch') are phase markers, not issues — Linear has a separate feature for those. Cross-team dependencies go in Relations, not duplicate issues."
-
-For each issue, show ALL fields that are not in `SKIP_FIELDS`:
-
-- **Title** — action-oriented, no people's names
-- **Status** — Todo / In Progress / Backlog (use team's configured workflow statuses from Phase 1A)
-- **Description:**
-  ```
-  ## Problem Statement
-  [What specific problem does this issue solve?]
-
-  ## Context
-  [Relevant background, constraints, or dependencies]
-  ```
-  Add acceptance criteria only if the issue is purely tactical with clear done criteria.
-- **Assignee** *(if not skipped)* — propose only if clearly indicated in research; otherwise leave blank
-- **Priority** *(if not skipped)*
-- **Label(s)** — from the approved label structure
-- **Project** — the project this issue belongs to
-- **Cycle** *(if not skipped)* — propose the current cycle if this is active work
-- **Due date** *(if not skipped)* — propose only if a date is clearly referenced in research
-- **Estimate** *(if not skipped)* — leave blank unless the team uses story points
-- **Parent issue** — flag if this should be a sub-issue of another
-- **Relations** *(if not skipped)* — flag if this blocks or is blocked by another issue
-
-Ask for approval, then create.
-
-**Cross-team issue rule:** If an issue will be assigned to someone on a different team, set the issue's **team owner** to that person's team — not the project's primary team. This ensures the issue appears in the assignee's sprint cadence and cycle, not the wrong team's.
-
----
-
-### PHASE 6 — BACKLOG ITEMS
-
-After all projects and issues are created, surface remaining items from research that don't fit a current project.
-
-Present as: **Title | Suggested Label | Notes**
-
-Ask the user which ones to create as standalone backlog issues.
-
----
-
-### PHASE 7 — OWNER PERMISSION HANDOFF (only if needed)
-
-If any items require team owner access (label groups, labels, team templates, team settings), generate a handoff artifact:
-
+If the user explicitly asked to add to an existing project (e.g., "add these to my ICM project"),
+skip the new-project path entirely and just create issues in that project. Look up the project by
+name if no ID is given:
 ```
-## Linear Setup — Items Needing Team Owner Action
-Team: [Team Name]
-Requested by: [Analyst name]
+list_projects: team="07820760-c629-4156-9b4a-7767e6afe467"
+```
+Find the matching project and use its ID for all issue creation.
 
-### Labels to Create
-[Each group and its child labels, with usage notes]
+**B. Fetch initiatives:**
+Call `list_initiatives` to identify the best-fit initiative. If the user is adding to an
+existing project, skip initiative recommendation — the project already has or doesn't have
+an initiative link.
 
-### Other Settings
-[Templates, views, or other settings needing owner access]
+Call `list_initiatives` to get the current list of company initiatives. You'll use this to
+recommend the best-fit initiative for the project. Scan names and summaries for overlap with
+the project description — look for alignment on audience (GTM, Pro Success, CS), strategic
+theme (revenue, retention, tooling, enablement), or explicit program names.
+
+Don't show the raw list to the user. Identify 1–3 candidate initiatives to propose in the plan.
+If nothing is a strong match, it's fine to say so — not every project needs an initiative link.
+
+### Step 3 — Ask only what's genuinely missing
+
+After reading the brain dump, ask one focused message with only the questions you couldn't
+answer from context. Batch them — don't ask in separate back-and-forths. Key gaps:
+
+1. **Project structure**: Project with milestones, or just issues in the backlog? Briefly
+   explain the difference: a project gives a timeline, milestone checkpoints, and progress
+   view; issues-only is lighter for smaller work.
+2. **Teams/segments impacted**: Which audience labels apply? Show the short list.
+3. **People involved**: Who's working on this? Show the team roster.
+4. **Start date**: When does work begin? All due dates anchor to this.
+5. **Overall timeline**: How long? Hard deadline anchors?
+
+Skip any question you can answer from context.
+
+### Step 4 — Generate and present the plan
+
+Before creating anything in Linear, show the complete plan.
+
+**If adding to an existing project**, use this format:
+```
+## Adding to: [Existing Project Name]
+**Project**: [link or name]
+**Milestone**: [Which milestone these issues belong under, if applicable, or "no milestone"]
+
+- [ ] [Issue title] — [Assignee] | [Label1], [Label2]
+  - [ ] [Sub-issue] — [Assignee]
+- [ ] [Issue title] — [Assignee] | [Label1], [Label2]
+
+---
+Does this look right? I'll add these to [Project Name] once you confirm.
 ```
 
----
-
-### GENERAL RULES (apply throughout)
-
-- Never ask the user for information Claude can look up itself
-- Never create anything without showing fields first and getting approval
-- If the user says "yes" or "go ahead," create immediately without re-summarizing
-- No priority field on issues unless explicitly in scope (or user chose to keep it)
-- No people's names in issue or project descriptions — use roles or team names
-- Project descriptions are evergreen — no "pending" or status language
-- If the user wants to skip something, skip it without pushback
-- Labels within the same group are mutually exclusive — if something spans two sibling labels, pick the more relevant one and note it
-- Keep the tone friendly and educational — the user is likely learning Linear for the first time
-- Always distinguish existing Linear items (found in research) from new items (being proposed)
-
----
-
-## LINEAR TRAINING COURSE
-
-When the user wants a guided walkthrough of Linear (vs. team setup), run the training course below.
-
-### Step 1: Ask setup questions before starting
-
-**Question 1 — Role:**
-> "What's your primary role in Linear — how will you mainly use it?"
-> - IC / Analyst — picking up and working issues, updating status, leaving comments
-> - PM / Project lead — creating issues, managing projects/cycles, tracking progress across a team
-> - TPM / Program manager — cross-team oversight, initiatives, OKRs, running a lane
-> - Manager / Lead — high-level oversight across multiple teams
-> - All of the above / mixed
-
-**Question 2 — Delivery format:**
-> "Do you have the Claude in Chrome browser extension installed and connected?"
-> - Yes — deliver as a live browser walkthrough (navigate Linear, take screenshots, annotate exactly what to click)
-> - No — deliver as detailed step-by-step text with exact button names and menu paths
-
----
-
-### Module 1: The Layout
-
-**Goal:** Learner understands every section of the left sidebar.
-
-**If browser walkthrough:** Take a screenshot of the home screen, point out each section. Dismiss AI Agent pane if open (press Escape). Navigate to My Issues.
-
-| Sidebar item | What it is |
-|---|---|
-| Pulse | Activity feed. 3 tabs: "For me" (based on subscriptions), "Popular" (workspace-wide), "Recent" (all activity). |
-| Inbox | Notifications requiring action — @mentions, assignments, status changes on watched issues. |
-| My Issues | Personal cross-team view. 4 tabs: Assigned, Created, Subscribed, Activity. |
-| Reviews | PRs and code review requests linked to issues. Mainly for engineers. |
-| Workspace → Initiatives | Company/org-level OKRs. Contain projects. |
-| Workspace → Projects | All projects across all teams. |
-| Workspace → Views | Saved custom filters. |
-| Team sections | Each team has its own Triage, Issues, Cycles, Projects, and Views. |
-
-**Key concept:** Workspace → Teams → Issues. Top sidebar items are personal cross-team views; team sections are scoped.
-
----
-
-### Module 2: Anatomy of an Issue
-
-**Goal:** Learner can read and update every field on an issue.
-
-**If browser walkthrough:** Navigate to My Issues → Assigned, open an issue, take a screenshot. Click Status dropdown → Escape. Click Priority dropdown → Escape.
-
-**Breadcrumb:** Shows Project → Issue. Star icon bookmarks it.
-
-**Jira sync banner (if present):** Changes sync automatically. ↗ opens the Jira ticket.
-
-**Main body:** Title (click to rename), Description (rich-text/markdown), Sub-issues (click "+ Add sub-issues").
-
-**Properties panel (right side, saves instantly):**
-
-| Field | What it does |
-|---|---|
-| Status | Workflow state (teams customize their own). |
-| Priority | Urgent → High → Medium → Low. Shortcut: P in list view. |
-| Assignee | Who owns the issue. |
-| Labels | Tags for filtering. |
-| Project | Which project this issue belongs to. |
-| Cycle | Which sprint it's in. |
-| Due date | Hard deadline. Optional. |
-| Estimate | Story points, if your team uses them. |
-| Parent issue | Shows if this is a sub-issue. |
-
-**Properties ▼ toggle:** Clicking "Properties" collapses/expands Status, Priority, and Assignee. If those disappear, that's why.
-
-**Activity section:** Full history. You're auto-subscribed to issues you create or are assigned to.
-
----
-
-### Module 3: Creating an Issue the Right Way
-
-**Goal:** Learner can create a well-formed issue.
-
-**If browser walkthrough:** Navigate to team Issues, click "New Issue" (or press C), walk through modal fields, press Escape — do NOT submit.
-
-**How to create:** Press **C** anywhere | Click **New Issue** in any Issues view | Hover team in sidebar → **+**
-
-**Fields:** Team → Title → Status → Priority → Assignee → Project → Cycle → Description → Label → Estimate
-
-**Where it lands:** Team Issues list (under the status you set) | My Issues → Assigned (if assigned to you) | My Issues → Created (always) | NOT in a Cycle unless explicitly added.
-
-Sub-issues can't be added during creation — create parent first, then use "+ Add sub-issues".
-
----
-
-### Module 4: Cycles (Sprints)
-
-**Goal:** Learner can plan and manage a sprint.
-
-**If browser walkthrough:** Navigate to team Cycles, show Current/Upcoming sections, open current cycle, show how to add an issue.
-
-A Cycle is Linear's sprint — time-boxed, team-scoped, typically 2 weeks.
-
-- **Current** — active cycle with progress bar
-- **Upcoming** — next cycle; use for sprint planning
-- **Completed** — history
-
-**Add an issue to a cycle:** Open issue → Cycle field | Right-click issue → "Add to cycle" | Inside cycle view → "+ Add issues"
-
-**Rollover:** At end of cycle, Linear asks: move unfinished issues to next cycle, backlog, or cancel.
-
----
-
-### Module 5: Projects
-
-**Goal:** Learner can create and manage a project.
-
-**If browser walkthrough:** Navigate to Projects, open one existing project, show Issues tab, Milestones, and status update area.
-
-**Project vs. Cycle:** Cycle = time ("what are we doing this week?"). Project = scope ("what are we building?"). An issue can be in both simultaneously.
-
-**Inside a project:** Issues tab | Updates tab (health) | Milestones | Members | Overview/README
-
-**Project statuses:** Planned → In Progress → Completed → Cancelled / Paused
-
-**How to create:** Sidebar → team → Projects → "+ New Project"
-
----
-
-### Module 6: Initiatives
-
-**Goal:** Learner understands how projects connect to company OKRs.
-
-*Keep brief for IC/Analyst role.*
-
-**If browser walkthrough:** Navigate to Workspace → Initiatives, open one, show Projects tab grouped by Sub-initiative.
-
+**If creating a new project**, use this format:
 ```
-Initiative (Strategic Objective)
-  └── Sub-initiative (workstream or theme)
-        └── Project (a deliverable)
-              └── Issue (a unit of work)
+## Project: [Name]
+**Goal**: [One-sentence goal]
+**Start date**: [Date] | **Target completion**: [Date]
+**Structure**: [Project with milestones / Issues only]
+**Initiative**: [Recommended initiative name + one-sentence reason]
+           OR  [No strong match found — skipping initiative link]
+
+---
+
+### Milestone 1: [Name] — target: [date]
+- [ ] [Issue title] — [Assignee] | [Label1], [Label2]
+  - [ ] [Sub-issue] — [Assignee]  ← only when the parent needs task-level breakdown
+  - [ ] [Sub-issue] — [Assignee]
+- [ ] [Issue title] — [Assignee] | [Label1], [Label2]
+
+### Milestone 2: [Name] — target: [date]
+- [ ] [Issue title] — [Assignee] | [Label1], [Label2]
+...
+
+---
+Does this look right? Any changes to initiative, assignees, labels, dates, milestones,
+or issue breakdown before I create everything?
 ```
 
-**At Thumbtack:** SOs are tracked as Initiatives. SO Leads and BOPMs own the Initiative structure — you don't create them, you link your projects to them. Edit project → set Initiative field to the relevant SO or sub-initiative.
+**Initiative recommendation**: Be direct when there's a clear match and explain why briefly.
+Be honest when the match is weak: "Closest match is X but the overlap is loose — happy to
+skip if you'd rather wait for a better fit." Never force an initiative link.
+
+**Milestones**: Aim for 2–4 per project. Each milestone should be a meaningful checkpoint the
+team would demo, report on, or gate the next phase on. For small projects (<4 issues), ask if
+milestones are wanted. For sequential work where one phase must complete before the next
+starts, milestones are strongly recommended.
+
+**Sub-issues**: Use them when a single issue has 3+ distinct work items that can each be
+independently completed and checked off. They add value when the breakdown helps the team
+track granular progress — not just to add detail. Show sub-issues indented under their parent.
+
+**Assignee reasoning**:
+- Data pulling and engineering → Arvin Escolano, Mel Panal
+- Analysis and reporting → whoever has domain expertise on the segment
+- Operations and process work → Grindy, Jeanne, Novie, Blaise, Josh, Jen, Fitz
+- Unclear → `[TBD]`, noted at the bottom
+
+**Issue sizing**: Issues should be completable in 1–2 weeks. Use sub-issues or split into
+multiple issues for larger work. Titles should be action-oriented.
+
+### Step 5 — Incorporate feedback
+
+Show only the changed sections after edits. Confirm before creating.
+
+### Step 6 — Create in Linear
+
+Once confirmed, create in this order:
+
+**If adding to an existing project**, skip to step 3 (issues). Use the existing project's ID
+and, if applicable, an existing milestone ID (look it up with `list_milestones: projectId=...`).
+
+**If creating a new project:**
+
+**1. Project:**
+```
+save_project: name, description, teamId="07820760-c629-4156-9b4a-7767e6afe467",
+              startDate, targetDate,
+              addInitiatives=[initiative ID]  ← include only if user confirmed
+```
+Save returned project ID.
+
+**2. Milestones (in order):**
+```
+save_milestone: name, projectId, targetDate
+```
+Save each returned milestone ID.
+
+**3. Parent issues:**
+```
+save_issue: title, description, teamId, assignee, labelIds, dueDate,
+            projectId, projectMilestoneId
+```
+Save each returned issue ID — needed for sub-issues.
+
+**4. Sub-issues:**
+```
+save_issue: title, description, teamId, assignee, labelIds, dueDate,
+            projectId, parentId=[parent issue ID]
+```
+
+Create milestone by milestone. After each milestone completes:
+"✓ Milestone [N] done — [X] issues, [Y] sub-issues created."
+
+Continue without waiting. Report failures at the end.
+
+### Step 7 — Summarize
+
+- Linear project URL: `https://linear.app/thumbtack/project/[slug]`
+- Initiative linked: [name] or "none"
+- Totals: [N] milestones, [N] issues, [N] sub-issues
+- [TBD] assignees needing manual assignment
+- Any failures with suggested next steps
 
 ---
 
-### Module 7: Views (Custom Filters)
+## Initiatives
 
-**Goal:** Learner can create a saved view for their most-used filter.
+Initiatives are Thumbtack's top-level strategic containers. Linking a project to one gives
+leadership visibility into your work automatically. The list changes over time — always fetch
+it fresh with `list_initiatives`.
 
-**If browser walkthrough:** Navigate to team Views, show an existing view, demonstrate: "+ New View" → add filter → save.
+When recommending, look for:
+- **Audience overlap**: Pro Success, Customer Success, GTM broadly, etc.
+- **Outcome alignment**: Does your project's goal advance the initiative's stated outcome?
+- **Explicit name matches**: Does the brain dump name a program that maps to an initiative?
 
-A View is a saved filter. Common useful ones: Status = In Progress | Status = Blocked | Project = none (backlog hygiene) | High priority not in any cycle.
-
-**How to create:** Team Issues → Filter icon → add filters → "Save as view" → name it.
-
----
-
-### Closing the course
-
-> "That covers the core of Linear for your role.
-> - **Keyboard shortcuts** — press `?` anywhere. Most useful: `C` create issue, `P` set priority, `G M` jump to My Issues.
-> - **Triage** — ungroomed issues land here before being moved to backlog or a cycle.
-> - **Thumbtack resources** — `#linear-migration` and `#linear-comm-ops` for org-specific guidance and examples from other teams.
-> - **Linear docs** — `linear.app/docs` for anything we didn't cover.
->
-> What questions came up as we went through this?"
+Better to recommend nothing than a poor fit. Surface 1–3 candidates and let the user decide.
 
 ---
 
-### Training course notes
+## Cross-team work
 
-- One module at a time. End each with "Module X complete — ready for Module Y?"
-- Browser mode: screenshot after every navigation, before explaining. Open dropdowns to show options, then Escape without changing.
-- IC/Analysts: Modules 1–4 most important. TPMs/PMs: all 7. Managers can often skip Module 3.
-- Never create, edit, or delete anything during training unless the learner explicitly asks to practice.
-- Answer mid-module questions in context, then offer to continue.
+### People from other teams
+```
+list_users: query="[name]"
+```
+Use the returned `id` as assignee. Note their team in the plan.
+
+### Issues in another team's backlog
+Ask: "This looks like it belongs in [Team]'s backlog — should I create it there or keep it
+in PERF with them as the assignee?"
+
+If creating in another team:
+```
+list_teams: query="[team name]"
+```
+Use that team's `id` as `teamId` in `save_issue`.
+
+### Cross-team labels
+- Apply the relevant team/audience label if one exists
+- Use the **Influence Dependency** issue management label when PERF is waiting on another team to unblock progress
+
+---
+
+## Adding new labels
+
+**Never create or assign a label that isn't in the label taxonomy tables above without asking first.**
+
+If you think a label is needed and it doesn't exist:
+1. Name the missing label and explain why you think it's needed
+2. Suggest the closest existing label as a stand-in
+3. Ask: "Should I use **[closest label]** for now, or create a new **[X]** label first?"
+
+Wait for an explicit answer before proceeding. Do not silently fall back to a different label.
+
+---
+
+## Quick label reference
+
+- Pulling raw data → **Data-pull**
+- Interpreting or modeling data → **Analysis**
+- Building visual reports → **Dashboard**
+- Engineering pipelines / ETL → **Data-Eng**
+- Training, playbooks, enablement → **Field Enablement**
+- QA, testing, quality checks → **Quality**
+- A/B tests → no label yet; flag it, use **Analysis** as fallback
+- AI tools / workflow automation → **AI Enablement**
+- Work for the Experiments team → **Experiments Team** (ops hub, not A/B testing)
+
+---
+
+## Daily Progress Check Flow
+
+This flow runs automatically at 6pm ET every day, or whenever the user asks for a progress
+check. It scans connected tools for completion signals, presents a report, and updates Linear
+only after the user signs off. Never update any issue without explicit approval.
+
+### Step A — Identify the current user (silently)
+
+Match the session user to the team roster by email. If not found in the roster (the user may
+be a PERF member assigned issues in another team's backlog), call:
+```
+list_users: query="[name or email]"
+```
+Use the returned Linear user ID for all subsequent queries. Store as `CURRENT_USER_ID`.
+
+### Step B — Fetch all open issues assigned to the user (silently)
+
+```
+list_issues: assignee=CURRENT_USER_ID
+```
+
+This returns issues across **all teams** — not just PERF. The user may be assigned work in
+any Linear team. Collect issue IDs, titles, project names, and current status. Filter to
+only issues with status type `backlog`, `unstarted`, or `started` (skip Done and Canceled).
+
+### Step C — Pull 24-hour signals from connected tools (silently, run all three)
+
+**1. Granola** — query meetings from the last 24 hours:
+```
+query_granola_meetings: query="[comma-separated issue IDs and project names]"
+                        dateRange="last 24 hours"
+```
+Scan transcripts and notes for mentions of issue IDs, issue titles, or project names.
+Extract any sentence within 2 lines of a match — this is the signal quote.
+
+**2. Slack** — search for issue ID and project name mentions:
+```
+slack_search_public_and_private: query="[issue IDs] OR [project names]" after:"yesterday"
+```
+Look for messages containing issue identifiers (e.g. "PERF-261") or issue titles. Note the
+channel, sender, and message text as the signal source.
+
+**3. Email** — search for relevant threads:
+```
+search_threads: query="[issue IDs] OR [project names]" after:"yesterday"
+```
+Look for subject lines or body text mentioning issue IDs or project/milestone names.
+
+### Step D — Classify each issue
+
+For each open issue, score the signals found:
+
+| Signal | Classification |
+|--------|---------------|
+| "done", "completed", "finished", "shipped", "closed", "handed off", "signed off" near issue mention | ✅ Likely Complete |
+| "in progress", "working on", "started", "reviewing", "drafted" near issue mention | 🔄 In Progress |
+| Issue mentioned but no clear direction word | 🔄 In Progress |
+| No mention in any source | 📭 No Signal |
+
+A single strong signal from any source is enough to classify. When in doubt, use the lower
+confidence tier — err on the side of not marking things done.
+
+### Step E — Present the report
+
+Open with the date and the user's name. Format:
+
+```
+## Daily Progress Check — [Weekday, Month Day]
+Hi [Name] — here's what I found across your Granola, Slack, and email from the last 24 hours.
+
+### ✅ Likely Complete ([N] issues)
+- **[ISSUE-ID]**: [Issue title] — *[Project name]*
+  > Signal ([source]): "[relevant quote]"
+
+### 🔄 In Progress ([N] issues)
+- **[ISSUE-ID]**: [Issue title] — *[Project name]*
+  > Signal ([source]): "[relevant quote]"
+
+### 📭 No Signal ([N] issues)
+- **[ISSUE-ID]**: [Issue title] — *[Project name]*
+...
+
+---
+To mark issues as done, reply with issue IDs (e.g. "PERF-261, PERF-282") or say
+**"approve all likely complete"** and I'll update Linear. Say **"skip"** if nothing to update.
+```
+
+If there are no open issues, say: "No open issues assigned to you right now."
+If all tools return no signals, say so honestly and list the open issues with no activity.
+
+### Step F — Wait for sign-off
+
+Parse the user's response:
+- **"approve all"** or **"approve all likely complete"** → mark every ✅ issue as Done
+- **Issue IDs listed** (e.g. "PERF-261, PERF-303") → mark only those as Done
+- **"skip"** or **"nothing"** or **"none"** → make no changes, confirm nothing was updated
+
+Do not proceed until you receive one of these responses. If the reply is ambiguous, ask:
+"Just to confirm — should I mark [X] as done?"
+
+### Step G — Update Linear
+
+For each confirmed issue:
+```
+save_issue: id=[ISSUE-ID], state="Done", team=[team ID]
+```
+
+After marking an issue done, check whether it has a parent issue. If the parent's remaining
+open sub-issues are now all done, offer:
+> "All sub-issues under [parent title] are now complete — want me to mark the parent done too?"
+
+After all updates, summarize:
+```
+✓ Marked [N] issues as Done:
+- PERF-261: Transfer comp calc & payout — Inbound
+- ...
+
+[N] issues left open. See you tomorrow at 6pm ET.
+```
